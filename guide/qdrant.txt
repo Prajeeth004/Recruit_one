@@ -1,0 +1,1990 @@
+API Reference
+Collections
+Get collection details
+
+Copy page
+
+GET
+
+http://localhost:6333
+/collections/:collection_name
+GET
+/collections/:collection_name
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.getCollection("{collection_name}");
+Try it
+200
+Retrieved
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "green",
+    "optimizer_status": "ok",
+    "segments_count": 1,
+    "config": {
+      "params": {
+        "vectors": {},
+        "shard_number": 1,
+        "sharding_method": "auto",
+        "replication_factor": 1,
+        "write_consistency_factor": 1,
+        "read_fan_out_factor": 1,
+        "on_disk_payload": true,
+        "sparse_vectors": {}
+      },
+      "hnsw_config": {
+        "m": 1,
+        "ef_construct": 1,
+        "full_scan_threshold": 1,
+        "max_indexing_threads": 0,
+        "on_disk": true,
+        "payload_m": 1,
+        "inline_storage": true
+      },
+      "optimizer_config": {
+        "deleted_threshold": 1.1,
+        "vacuum_min_vector_number": 1,
+        "default_segment_number": 1,
+        "flush_interval_sec": 1,
+        "max_segment_size": 1,
+        "indexing_threshold": 1,
+        "max_optimization_threads": 1,
+        "memmap_threshold": 1
+      },
+      "wal_config": {
+        "wal_capacity_mb": 1,
+        "wal_segments_ahead": 1,
+        "wal_retain_closed": 1
+      },
+      "quantization_config": {
+        "scalar": {
+          "type": "int8",
+          "quantile": 1.1,
+          "always_ram": true
+        }
+      },
+      "strict_mode_config": {
+        "enabled": true,
+        "max_query_limit": 1,
+        "max_timeout": 1,
+        "unindexed_filtering_retrieve": true,
+        "unindexed_filtering_update": true,
+        "search_max_hnsw_ef": 1,
+        "search_allow_exact": true,
+        "search_max_oversampling": 1.1,
+        "upsert_max_batchsize": 1,
+        "max_collection_vector_size_bytes": 1,
+        "read_rate_limit": 1,
+        "write_rate_limit": 1,
+        "max_collection_payload_size_bytes": 1,
+        "max_points_count": 1,
+        "filter_max_conditions": 1,
+        "condition_max_size": 1,
+        "multivector_config": {},
+        "sparse_config": {},
+        "max_payload_index_count": 1
+      },
+      "metadata": {}
+    },
+    "payload_schema": {},
+    "warnings": [
+      {
+        "message": "string"
+      }
+    ],
+    "indexed_vectors_count": 1,
+    "points_count": 1
+  }
+}
+Retrieves parameters from the specified collection.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to retrieve
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+Current statistics and configuration of the collection
+
+Show 8 properties
+Was this page helpful?
+Yes
+No
+Previous
+Create a collection
+Next
+Built withAPI Reference
+Collections
+Create a collection
+
+Copy page
+
+PUT
+
+http://localhost:6333
+/collections/:collection_name
+PUT
+/collections/:collection_name
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.createCollection("{collection_name}", {
+  vectors: { size: 100, distance: "Cosine" },
+});
+// or with sparse vectors
+client.createCollection("{collection_name}", {
+  vectors: { size: 100, distance: "Cosine" },
+  sparse_vectors: {
+    "splade-model-name": {
+      index: {
+        on_disk: false
+      }
+    }
+  }
+});
+Try it
+200
+Updated
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": true
+}
+Creates a new collection with the given parameters.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the new collection
+Query parameters
+timeout
+integer
+Optional
+Wait for operation commit timeout in seconds. If timeout is reached - request will return with service error.
+
+Request
+Parameters of a new collection
+vectors
+object or map from strings to objects
+Optional
+Vector params separator for single and multiple vector modes Single mode:
+
+{ “size”: 128, “distance”: “Cosine” }
+
+or multiple mode:
+
+{ “default”: { “size”: 128, “distance”: “Cosine” } }
+
+
+Show 2 variants
+shard_number
+uint or null
+Optional
+For auto sharding: Number of shards in collection. - Default is 1 for standalone, otherwise equal to the number of nodes - Minimum is 1
+
+For custom sharding: Number of shards in collection per shard group. - Default is 1, meaning that each shard key will be mapped to a single shard - Minimum is 1
+
+sharding_method
+enum or any
+Optional
+Sharding method Default is Auto - points are distributed across all available shards Custom - points are distributed across shards according to shard key
+
+
+Show 2 variants
+replication_factor
+uint or null
+Optional
+Number of shards replicas. Default is 1 Minimum is 1
+write_consistency_factor
+uint or null
+Optional
+Defines how many replicas should apply the operation for us to consider it successful. Increasing this number will make the collection more resilient to inconsistencies, but will also make it fail if not enough replicas are available. Does not have any performance impact.
+on_disk_payload
+boolean or null
+Optional
+If true - point’s payload will not be stored in memory. It will be read from the disk every time it is requested. This setting saves RAM by (slightly) increasing the response time. Note: those payload values that are involved in filtering and are indexed - remain in RAM.
+
+Default: true
+
+hnsw_config
+object or any
+Optional
+Custom params for HNSW index. If none - values from service configuration file are used.
+
+
+Show 2 variants
+wal_config
+object or any
+Optional
+Custom params for WAL. If none - values from service configuration file are used.
+
+
+Show 2 variants
+optimizers_config
+object or any
+Optional
+Custom params for Optimizers. If none - values from service configuration file are used.
+
+
+Show 2 variants
+quantization_config
+object or any
+Optional
+Quantization parameters. If none - quantization is disabled.
+
+
+Show 2 variants
+sparse_vectors
+map from strings to objects or null
+Optional
+Sparse vector data config.
+
+Show 2 properties
+strict_mode_config
+object or any
+Optional
+Strict-mode config.
+
+
+Show 2 variants
+metadata
+map from strings to any or any
+Optional
+Arbitrary JSON metadata for the collection This can be used to store application-specific information such as creation time, migration data, inference model info, etc.
+
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+boolean or null
+Was this page helpful?
+Yes
+No
+Previous
+Delete a collection
+Next
+Built withAPI Reference
+Collections
+Delete a collection
+
+Copy page
+
+DELETE
+
+http://localhost:6333
+/collections/:collection_name
+DELETE
+/collections/:collection_name
+
+TypeScript
+
+import { QdrantClient } from '@qdrant/qdrant-js';
+const client = new QdrantClient({url: 'http://127.0.0.1:6333'});
+client.deleteCollection("{collection_name}");
+Try it
+200
+Deleted
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": true
+}
+Drops the specified collection and all associated data in it.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to delete
+Query parameters
+timeout
+integer
+Optional
+Wait for operation commit timeout in seconds. If timeout is reached - request will return with service error.
+
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+boolean or null
+Was this page helpful?
+Yes
+No
+Previous
+Update collection parameters
+Next
+Built withAPI Reference
+Collections
+Update collection parameters
+
+Copy page
+
+PATCH
+
+http://localhost:6333
+/collections/:collection_name
+PATCH
+/collections/:collection_name
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.updateCollection("{collection_name}", {
+  optimizers_config: {
+    indexing_threshold: 10000,
+  },
+});
+Try it
+200
+Updated
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": true
+}
+Updates the parameters of the specified collection.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to update
+Query parameters
+timeout
+integer
+Optional
+Wait for operation commit timeout in seconds. If timeout is reached - request will return with service error.
+
+Request
+New parameters
+vectors
+map from strings to objects or any
+Optional
+Map of vector data parameters to update for each named vector. To update parameters in a collection having a single unnamed vector, use an empty string as name.
+
+Show 2 variants
+optimizers_config
+object or any
+Optional
+Custom params for Optimizers. If none - it is left unchanged. This operation is blocking, it will only proceed once all current optimizations are complete
+
+
+Show 2 variants
+params
+object or any
+Optional
+Collection base params. If none - it is left unchanged.
+
+
+Show 2 variants
+hnsw_config
+object or any
+Optional
+HNSW parameters to update for the collection index. If none - it is left unchanged.
+
+
+Show 2 variants
+quantization_config
+object or enum or any
+Optional
+Quantization parameters to update. If none - it is left unchanged.
+
+
+Show 2 variants
+sparse_vectors
+map from strings to objects or any
+Optional
+Map of sparse vector data parameters to update for each sparse vector.
+
+Show 2 variants
+strict_mode_config
+object or any
+Optional
+
+Show 2 variants
+metadata
+map from strings to any or any
+Optional
+Metadata to update for the collection. If provided, this will merge with existing metadata. To remove metadata, set it to an empty object.
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+boolean or null
+Was this page helpful?
+Yes
+No
+Previous
+List all collections
+Next
+Built withAPI Reference
+Collections
+List all collections
+
+Copy page
+
+GET
+
+http://localhost:6333
+/collections
+GET
+/collections
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.getCollections();
+Try it
+200
+Retrieved
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "collections": [
+      {
+        "name": "string"
+      }
+    ]
+  }
+}
+Returns a list of all existing collections.
+Authentication
+api-key
+string
+API Key authentication via header
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 1 properties
+Was this page helpful?
+Yes
+No
+Previous
+Check collection existence
+Next
+Built withAPI Reference
+Collections
+Check collection existence
+
+Copy page
+
+GET
+
+http://localhost:6333
+/collections/:collection_name/exists
+GET
+/collections/:collection_name/exists
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.collectionExists("{collection_name}");
+Try it
+200
+Retrieved
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "exists": true
+  }
+}
+Checks whether the specified collection exists.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+State of existence of a collection, true = exists, false = does not exist
+
+
+Show 1 properties
+Was this page helpful?
+Yes
+No
+Previous
+Retrieve points
+Next
+Built withAPI Reference
+Points
+Retrieve points
+
+Copy page
+
+POST
+
+http://localhost:6333
+/collections/:collection_name/points
+POST
+/collections/:collection_name/points
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.retrieve("{collection_name}", {
+  ids: [0, 3, 100],
+});
+Try it
+200
+Successful
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": [
+    {
+      "id": 42,
+      "payload": {},
+      "vector": {},
+      "shard_key": "region_1",
+      "order_value": 42
+    }
+  ]
+}
+Retrieves all details from multiple points.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to retrieve from
+Query parameters
+consistency
+integer or enum
+Optional
+Define read consistency guarantees for the operation
+
+Show 2 variants
+timeout
+integer
+Optional
+>=1
+If set, overrides global timeout for this request. Unit is seconds.
+Request
+List of points to retrieve
+ids
+list of uint64s or strings
+Required
+Look for points with ids
+
+Show 2 variants
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+Specify in which shards to look for the points, if not specified - look in all shards
+
+
+Show 2 variants
+with_payload
+boolean or list of strings or object or any
+Optional
+Select which payload to return with the response. Default is true.
+
+Show 2 variants
+with_vector
+boolean or list of strings
+Optional
+Options for specifying which vector to include
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+list of objects or null
+
+Show 5 properties
+Was this page helpful?
+Yes
+No
+Previous
+Upsert points
+Next
+Built withAPI Reference
+Points
+Upsert points
+
+Copy page
+
+PUT
+
+http://localhost:6333
+/collections/:collection_name/points
+PUT
+/collections/:collection_name/points
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.upsert("{collection_name}", {
+  points: [
+    {
+      id: 1,
+      payload: { color: "red" },
+      vector: [0.9, 0.1, 0.1],
+    },
+    {
+      id: 2,
+      payload: { color: "green" },
+      vector: [0.1, 0.9, 0.1],
+    },
+    {
+      id: 3,
+      payload: { color: "blue" },
+      vector: [0.1, 0.1, 0.9],
+    },
+  ],
+});
+Try it
+200
+Updated
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Performs the insert + update action on specified points. Any point with an existing {id} will be overwritten.
+
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to update from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+Operation to perform on points
+PointsBatch
+object
+Required
+
+Show 3 properties
+OR
+PointsList
+object
+Required
+
+Show 3 properties
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Retrieve a point
+Next
+Built withAPI Reference
+Points
+Retrieve a point
+
+Copy page
+
+GET
+
+http://localhost:6333
+/collections/:collection_name/points/:id
+GET
+/collections/:collection_name/points/:id
+
+cURL
+
+curl http://localhost:6333/collections/collection_name/points/42 \
+     -H "api-key: <apiKey>"
+Try it
+200
+Retrieved
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "id": 42,
+    "payload": {},
+    "vector": {},
+    "shard_key": "region_1",
+    "order_value": 42
+  }
+}
+Retrieves all details from a single point.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to retrieve from
+id
+uint64 or string
+Required
+Id of the point
+
+Show 2 variants
+Query parameters
+consistency
+integer or enum
+Optional
+Define read consistency guarantees for the operation
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+Point data
+
+Show 5 properties
+Was this page helpful?
+Yes
+No
+Previous
+Delete points
+Next
+Built withAPI Reference
+Points
+Delete points
+
+Copy page
+
+POST
+
+http://localhost:6333
+/collections/:collection_name/points/delete
+POST
+/collections/:collection_name/points/delete
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.delete("{collection_name}", {
+  points: [0, 3, 100],
+});
+client.delete("{collection_name}", {
+    filter: {
+        must: [
+            {
+                key: "color",
+                match: {
+                    value: "red",
+                },
+            },
+        ],
+    },
+});
+Try it
+200
+Successful
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Deletes specified points from the collection.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to delete from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+Operation to perform on points
+PointIdsList
+object
+Required
+
+Show 2 properties
+OR
+FilterSelector
+object
+Required
+
+Show 2 properties
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Update vectors
+Next
+Built withAPI Reference
+Points
+Update vectors
+
+Copy page
+
+PUT
+
+http://localhost:6333
+/collections/:collection_name/points/vectors
+PUT
+/collections/:collection_name/points/vectors
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.updateVectors("{collection_name}", {
+    points: [
+        {
+            id: 1,
+            vector: {
+                image: [0.1, 0.2, 0.3, 0.4],
+            },
+        },
+        {
+            id: 2,
+            vector: {
+                text: [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2],
+            },
+        },
+    ],
+});
+Try it
+200
+Updated
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Updates specified vectors on points. All other unspecified vectors will stay intact.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to update from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+Update named vectors on points
+points
+list of objects
+Required
+Points with named vectors
+
+Show 2 properties
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+
+Show 2 variants
+update_filter
+object or any
+Optional
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Delete vectors
+Next
+Built withAPI Reference
+Points
+Delete vectors
+
+Copy page
+
+POST
+
+http://localhost:6333
+/collections/:collection_name/points/vectors/delete
+POST
+/collections/:collection_name/points/vectors/delete
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.deleteVectors("{collection_name}", {
+  points: [0, 3, 10],
+  vectors: ["text", "image"],
+});
+Try it
+200
+Successful
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Deletes specified vectors from points. All other unspecified vectors will stay intact.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to delete from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+Delete named vectors from points
+vector
+list of strings
+Required
+Vector names
+points
+list of uint64s or strings or null
+Optional
+Deletes values from each point in this list
+
+Show 2 variants
+filter
+object or any
+Optional
+Deletes values from points that satisfy this filter condition
+
+Show 2 variants
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Set payload
+Next
+Built withAPI Reference
+Points
+Set payload
+
+Copy page
+
+POST
+
+http://localhost:6333
+/collections/:collection_name/points/payload
+POST
+/collections/:collection_name/points/payload
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.setPayload("{collection_name}", {
+  payload: {
+    property1: "string",
+    property2: "string",
+  },
+  points: [0, 3, 10],
+});
+Try it
+200
+Successful
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Sets payload values for specified points.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to set from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+Set payload on points
+payload
+map from strings to any
+Required
+points
+list of uint64s or strings or null
+Optional
+Assigns payload to each point in this list
+
+Show 2 variants
+filter
+object or any
+Optional
+Assigns payload to each point that satisfy this filter condition
+
+Show 2 variants
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+
+Show 2 variants
+key
+string or null
+Optional
+Assigns payload to each point that satisfy this path of property
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Overwrite payload
+Next
+Built withAPI Reference
+Points
+Overwrite payload
+
+Copy page
+
+PUT
+
+http://localhost:6333
+/collections/:collection_name/points/payload
+PUT
+/collections/:collection_name/points/payload
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.overwritePayload("{collection_name}", {
+  payload: {
+    property1: "string",
+    property2: "string",
+  },
+  points: [0, 3, 10],
+});
+Try it
+200
+Updated
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Replaces the entire payload of a specified point with a new payload.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to set from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+Payload and points selector
+payload
+map from strings to any
+Required
+points
+list of uint64s or strings or null
+Optional
+Assigns payload to each point in this list
+
+Show 2 variants
+filter
+object or any
+Optional
+Assigns payload to each point that satisfy this filter condition
+
+Show 2 variants
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+
+Show 2 variants
+key
+string or null
+Optional
+Assigns payload to each point that satisfy this path of property
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Delete payload
+Next
+Built withAPI Reference
+Points
+Delete payload
+
+Copy page
+
+POST
+
+http://localhost:6333
+/collections/:collection_name/points/payload/delete
+POST
+/collections/:collection_name/points/payload/delete
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.deletePayload("{collection_name}", {
+  keys: ["color", "price"],
+  points: [0, 3, 100],
+});
+Try it
+200
+Successful
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "status": "acknowledged",
+    "operation_id": 1
+  }
+}
+Deletes a specified key payload for points.
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to delete from
+Query parameters
+wait
+boolean
+Optional
+If true, wait for changes to actually happen
+ordering
+enum
+Optional
+define ordering guarantees for the operation
+Allowed values:
+weak
+medium
+strong
+Request
+delete payload on points
+keys
+list of strings
+Required
+List of payload keys to remove from payload
+points
+list of uint64s or strings or null
+Optional
+Deletes values from each point in this list
+
+Show 2 variants
+filter
+object or any
+Optional
+Deletes values from points that satisfy this filter condition
+
+Show 2 variants
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 2 properties
+Was this page helpful?
+Yes
+No
+Previous
+Clear payload
+Next
+Built withAPI Reference
+Search
+Query points
+
+Copy page
+
+POST
+
+http://localhost:6333
+/collections/:collection_name/points/query
+POST
+/collections/:collection_name/points/query
+
+TypeScript
+
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+// Query nearest by ID
+let _nearest = client.query("{collection_name", {
+    query: "43cf51e2-8777-4f52-bc74-c2cbde0c8b04"
+});
+// Recommend on the average of these vectors
+let _recommendations = client.query("{collection_name}", {
+    query: {
+        recommend: {
+            positive: ["43cf51e2-8777-4f52-bc74-c2cbde0c8b04", [0.11, 0.35, 0.6]],
+            negative: [0.01, 0.45, 0.67]
+        }
+    }
+});
+// Fusion query
+let _hybrid = client.query("{collection_name}", {
+    prefetch: [
+        {
+            query: {
+                values: [0.22, 0.8],
+                indices: [1, 42],
+            },
+            using: 'sparse',
+            limit: 20,
+        },
+        {
+            query: [0.01, 0.45, 0.67],
+            using: 'dense',
+            limit: 20,
+        },
+    ],
+    query: {
+        fusion: 'rrf',
+    },
+});
+// 2-stage query
+let _refined = client.query("{collection_name}", {
+    prefetch: {
+        query: [1, 23, 45, 67],
+        limit: 100,
+    },
+    query: [
+        [0.1, 0.2],
+        [0.2, 0.1],
+        [0.8, 0.9],
+    ],
+    using: 'colbert',
+    limit: 10,
+});
+// Random sampling (as of 1.11.0)
+let _sampled = client.query("{collection_name}", {
+  query: { sample: "random" },
+});
+// Score boost depending on payload conditions (as of 1.14.0)
+const tag_boosted = await client.query("{collection_name}", {
+  prefetch: {
+    query: [0.2, 0.8, 0.1, 0.9],
+    limit: 50
+  },
+  query: {
+    formula: {
+      sum: [
+        "$score",
+        {
+          mult: [ 0.5, { key: "tag", match: { any: ["h1", "h2", "h3", "h4"] }} ]
+        },
+        {
+          mult: [ 0.25, { key: "tag", match: { any: ["p", "li"] }} ]
+        }
+      ]
+    }
+  }
+});
+// Score boost geographically closer points (as of 1.14.0)
+const distance_boosted = await client.query("{collection_name}", {
+  prefetch: {
+    query: [0.2, 0.8, ...],
+    limit: 50
+  },
+  query: {
+    formula: {
+      sum: [
+        "$score",
+        {
+          gauss_decay: {
+            x: {
+              geo_distance: {
+                origin: { lat: 52.504043, lon: 13.393236 }, // Berlin
+                to: "geo.location"
+              }
+            },
+            scale: 5000 // 5km
+          }
+        }
+      ]
+    },
+    defaults: { "geo.location": { lat: 48.137154, lon: 11.576124 } } // Munich
+  }
+});
+Try it
+200
+Successful
+
+{
+  "usage": {
+    "hardware": {
+      "cpu": 1,
+      "payload_io_read": 1,
+      "payload_io_write": 1,
+      "payload_index_io_read": 1,
+      "payload_index_io_write": 1,
+      "vector_io_read": 1,
+      "vector_io_write": 1
+    },
+    "inference": {
+      "models": {}
+    }
+  },
+  "time": 0.002,
+  "status": "ok",
+  "result": {
+    "points": [
+      {
+        "id": 42,
+        "version": 3,
+        "score": 0.75,
+        "payload": {},
+        "vector": {},
+        "shard_key": "region_1",
+        "order_value": 42
+      }
+    ]
+  }
+}
+Universally query points. This endpoint covers all capabilities of search, recommend, discover, filters. But also enables hybrid and multi-stage queries.
+
+Authentication
+api-key
+string
+API Key authentication via header
+Path parameters
+collection_name
+string
+Required
+Name of the collection to query
+Query parameters
+consistency
+integer or enum
+Optional
+Define read consistency guarantees for the operation
+
+Show 2 variants
+timeout
+integer
+Optional
+>=1
+If set, overrides global timeout for this request. Unit is seconds.
+Request
+Describes the query to make to the collection
+shard_key
+string or uint64 or list of strings or uint64s or object or any
+Optional
+
+Show 2 variants
+prefetch
+object or list of objects or any
+Optional
+Sub-requests to perform first. If present, the query will be performed on the results of the prefetch(es).
+
+
+Show 3 variants
+query
+list of doubles or object or list of lists of doubles or uint64 or string or object or any
+Optional
+Query to perform. If missing without prefetches, returns points ordered by their IDs.
+
+Show 2 variants
+using
+string or null
+Optional
+Define which vector name to use for querying. If missing, the default vector is used.
+filter
+object or any
+Optional
+Filter conditions - return only those points that satisfy the specified conditions.
+
+
+Show 2 variants
+params
+object or any
+Optional
+Search params for when there is no prefetch
+
+Show 2 variants
+score_threshold
+double or null
+Optional
+Return points with scores better than this threshold.
+limit
+integer or null
+Optional
+>=1
+Max number of points to return. Default is 10.
+offset
+integer or null
+Optional
+>=0
+Offset of the result. Skip this many points. Default is 0
+with_vector
+boolean or list of strings or any
+Optional
+Options for specifying which vectors to include into the response. Default is false.
+
+Show 2 variants
+with_payload
+boolean or list of strings or object or any
+Optional
+Options for specifying which payload to include or not. Default is false.
+
+Show 2 variants
+lookup_from
+object or any
+Optional
+The location to use for IDs lookup, if not specified - use the current collection and the ‘using’ vector Note: the other collection vectors should have the same vector size as the ‘using’ vector in the current collection
+
+
+Show 2 variants
+Response
+successful operation
+usage
+object or any or null
+
+Show 2 variants
+time
+double or null
+Time spent to process this request
+status
+string or null
+result
+object or null
+
+Show 1 properties
+Was this page helpful?
+Yes
+No
+Previous
+Query points in batch
+Next
+Built with

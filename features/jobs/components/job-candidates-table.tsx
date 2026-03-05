@@ -45,7 +45,7 @@ export function JobCandidatesTable({ jobId }: JobCandidatesTableProps) {
                 setError('Job ID is required')
                 return
             }
-            
+
             setIsLoading(true)
             setError(null)
             try {
@@ -67,7 +67,7 @@ export function JobCandidatesTable({ jobId }: JobCandidatesTableProps) {
                 setIsLoading(false)
             }
         }
-        
+
         fetchCandidates()
     }, [jobId, topFilter])
 
@@ -99,7 +99,7 @@ export function JobCandidatesTable({ jobId }: JobCandidatesTableProps) {
 
     const handleCallCandidate = async (candidate: any) => {
         console.log('🔍 Debug: Candidate data:', candidate);
-        
+
         if (!candidate.phone) {
             console.log('❌ Debug: No phone number found');
             toast.error('Candidate phone number not available')
@@ -108,7 +108,7 @@ export function JobCandidatesTable({ jobId }: JobCandidatesTableProps) {
 
         console.log('📞 Debug: Initiating call to:', candidate.phone);
         setCallingCandidate(candidate.$id)
-        
+
         try {
             const callPayload = {
                 candidateId: candidate.$id,
@@ -119,12 +119,11 @@ export function JobCandidatesTable({ jobId }: JobCandidatesTableProps) {
                     firstName: candidate.firstName,
                     lastName: candidate.lastName,
                     email: candidate.email
-                },
-                jobDescription: 'Software Engineer position'
+                }
             };
-            
+
             console.log('📤 Debug: Call payload:', callPayload);
-            
+
             const response = await fetch('/api/call', {
                 method: 'POST',
                 headers: {
@@ -134,7 +133,7 @@ export function JobCandidatesTable({ jobId }: JobCandidatesTableProps) {
             })
 
             console.log('📡 Debug: Response status:', response.status);
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.log('❌ Debug: Error response:', errorText);

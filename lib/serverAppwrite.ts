@@ -102,3 +102,69 @@ export async function updateApplicationRow(applicationId: string, data: Record<s
     data,
   });
 }
+
+// ==========================================
+// Call Logs (server-side, admin access)
+// ==========================================
+
+export async function createCallLogRow(data: Record<string, unknown>) {
+  assertServerConfig();
+  const rowId = ID.unique();
+  await tablesDB.createRow({
+    databaseId: DB_ID,
+    tableId: 'call_logs',
+    rowId,
+    data,
+    permissions: [Permission.read(Role.any()), Permission.write(Role.any())],
+  });
+  return await tablesDB.getRow({ databaseId: DB_ID, tableId: 'call_logs', rowId });
+}
+
+export async function updateCallLogRow(rowId: string, data: Record<string, unknown>) {
+  assertServerConfig();
+  return await tablesDB.updateRow({
+    databaseId: DB_ID,
+    tableId: 'call_logs',
+    rowId,
+    data,
+  });
+}
+
+export async function getCallLogRowByVapiId(vapiCallId: string) {
+  assertServerConfig();
+  try {
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'call_logs',
+      queries: [Query.equal('vapi_call_id', vapiCallId), Query.limit(1)],
+    });
+    return result.rows?.[0] ?? null;
+  } catch {
+    // If the query fails (e.g., index not set up), do a manual scan
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'call_logs',
+      queries: [Query.limit(100)],
+    });
+    return result.rows?.find((r: any) => r.vapi_call_id === vapiCallId) ?? null;
+  }
+}
+
+export async function listCallLogsByCandidate(candidateId: string) {
+  assertServerConfig();
+  try {
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'call_logs',
+      queries: [Query.equal('candidate_id', candidateId), Query.orderDesc('$createdAt')],
+    });
+    return result.rows ?? [];
+  } catch {
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'call_logs',
+      queries: [Query.limit(200), Query.orderDesc('$createdAt')],
+    });
+    return (result.rows ?? []).filter((r: any) => r.candidate_id === candidateId);
+  }
+}

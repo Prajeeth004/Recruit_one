@@ -22,6 +22,7 @@ export default function CandidateDetailPage() {
     const [candidate, setCandidate] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [callLogs, setCallLogs] = useState<any[]>([])
 
     useEffect(() => {
         const fetchCandidate = async () => {
@@ -39,6 +40,14 @@ export default function CandidateDetailPage() {
         if (id) {
             fetchCandidate()
         }
+    }, [id])
+
+    useEffect(() => {
+        if (!id) return;
+        fetch(`/api/call-logs/${id}`)
+            .then(res => res.json())
+            .then(data => setCallLogs(data.logs || []))
+            .catch(err => console.error('Failed to load call logs:', err))
     }, [id])
 
     const [questions, setQuestions] = useState<any[]>([])
@@ -110,6 +119,7 @@ export default function CandidateDetailPage() {
                     <TabsTrigger value="related-deals">Related Deals</TabsTrigger>
                     <TabsTrigger value="contact-pitched">Contact(s) Pitched</TabsTrigger>
                     <TabsTrigger value="candidate-questions">Candidate Questions</TabsTrigger>
+                    <TabsTrigger value="call-logs">Call Logs</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="activities" className="mt-6">
@@ -264,6 +274,69 @@ export default function CandidateDetailPage() {
                                 </div>
                             ) : (
                                 <p className="text-muted-foreground">Click the button to generate interview questions based on the candidate's profile.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="call-logs" className="mt-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Call Logs</CardTitle>
+                            <span className="text-sm text-muted-foreground">{callLogs.length} call{callLogs.length !== 1 ? 's' : ''} recorded</span>
+                        </CardHeader>
+                        <CardContent>
+                            {callLogs.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <p className="text-muted-foreground text-sm">No call logs yet.</p>
+                                    <p className="text-muted-foreground text-xs mt-1">Calls initiated via the AI calling feature will appear here.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {callLogs.map((log: any) => {
+                                        const statusColors: Record<string, string> = {
+                                            completed: 'bg-green-100 text-green-700',
+                                            initiated: 'bg-blue-100 text-blue-700',
+                                            'in-progress': 'bg-yellow-100 text-yellow-700',
+                                            failed: 'bg-red-100 text-red-700',
+                                            missed: 'bg-orange-100 text-orange-700',
+                                            'no-answer': 'bg-gray-100 text-gray-600',
+                                        };
+                                        const statusColor = statusColors[log.status] || 'bg-gray-100 text-gray-600';
+                                        const duration = log.duration
+                                            ? `${Math.floor(log.duration / 60)}m ${log.duration % 60}s`
+                                            : null;
+
+                                        return (
+                                            <div key={log.$id} className="border rounded-lg p-4 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColor}`}>{log.status}</span>
+                                                        <span className="text-sm font-medium">{log.phone_number || 'Unknown number'}</span>
+                                                        {duration && <span className="text-xs text-muted-foreground">• {duration}</span>}
+                                                        {log.outcome && log.outcome !== 'unknown' && (
+                                                            <span className="text-xs text-muted-foreground capitalize">• {log.outcome.replace('_', ' ')}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {log.started_at
+                                                            ? new Date(log.started_at).toLocaleString()
+                                                            : new Date(log.$createdAt).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                {log.notes && (
+                                                    <p className="text-sm text-muted-foreground bg-muted/40 rounded p-2">{log.notes}</p>
+                                                )}
+                                                {log.transcript && (
+                                                    <details className="text-xs">
+                                                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">View Transcript</summary>
+                                                        <pre className="mt-2 whitespace-pre-wrap text-muted-foreground bg-muted/30 rounded p-2 max-h-40 overflow-y-auto">{log.transcript}</pre>
+                                                    </details>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </CardContent>
                     </Card>

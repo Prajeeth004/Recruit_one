@@ -182,14 +182,31 @@ export const createCandidate = async (candidateData: any, resumeFile?: File) => 
 export const getCandidates = async () => {
     try {
         await ensureAuthenticated();
-        const result = await tablesDB.listRows({
-            databaseId: DB_ID,
-            tableId: 'candidates',
-            queries: [
-                Query.orderDesc('$createdAt')
-            ]
-        });
-        return result.rows;
+
+        // Appwrite default page size is 25 — paginate to fetch ALL candidates
+        const pageSize = 100;
+        let offset = 0;
+        const allRows: any[] = [];
+
+        while (true) {
+            const result = await tablesDB.listRows({
+                databaseId: DB_ID,
+                tableId: 'candidates',
+                queries: [
+                    Query.orderDesc('$createdAt'),
+                    Query.limit(pageSize),
+                    Query.offset(offset),
+                ],
+            });
+
+            const rows = result.rows ?? [];
+            allRows.push(...rows);
+
+            if (rows.length < pageSize) break; // last page reached
+            offset += pageSize;
+        }
+
+        return allRows;
     } catch (error) {
         console.error("Error fetching candidates:", error);
         return [];

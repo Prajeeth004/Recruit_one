@@ -13,6 +13,7 @@ export const createJob = async (jobData: any) => {
             title: jobData.title,
             status: jobData.status || 'Open',
             company_id: jobData.company_id || jobData.companyId || null,
+            company_name: jobData.company_name || jobData.company || null,
             contact_id: jobData.contact_id || jobData.contactId || null,
             description: jobData.jobDescription || jobData.description || null,
             city: jobData.city || null,
@@ -149,11 +150,51 @@ export const getJobCandidates = async (jobId: string) => {
 export const updateJob = async (id: string, jobData: any) => {
     try {
         await ensureAuthenticated();
+
+        // Map form data back to the database schema for the update
+        const rawLocation = (jobData.jobLocationType || jobData.location_type || '').toLowerCase().replace(/[\s-]/g, '');
+        const location_type = ['remote', 'onsite', 'hybrid'].includes(rawLocation) ? rawLocation : null;
+
+        const jobRecord: any = {
+            title: jobData.title,
+            status: (jobData.status || 'open').toLowerCase().replace(/\s+/g, '_') || 'open',
+            company_id: jobData.company_id || jobData.companyId || null,
+            company_name: jobData.company_name || jobData.company || null,
+            contact_id: jobData.contact_id || jobData.contactId || null,
+            description: jobData.jobDescription || jobData.description || null,
+            city: jobData.city || null,
+            locality: jobData.locality || null,
+            address: jobData.fullAddress || jobData.address || null,
+            postal_code: jobData.postalCode || jobData.postal_code || null,
+            location_type,
+            min_experience: jobData.minExperience ?? jobData.min_experience ?? null,
+            max_experience: jobData.maxExperience ?? jobData.max_experience ?? null,
+            min_salary: jobData.minSalary ?? jobData.min_salary ?? null,
+            max_salary: jobData.maxSalary ?? jobData.max_salary ?? null,
+            currency: jobData.currency || jobData.currencyType || 'INR',
+            openings: jobData.openings ?? 1,
+            owner_id: jobData.owner_id || jobData.ownerId || jobData.owner || null,
+            pipeline_id: jobData.pipeline_id || jobData.pipelineId || jobData.hiringPipeline || null,
+        };
+
+        if (jobData.keywords || jobData.skills) {
+            jobRecord.skills = jobData.keywords
+                ? (Array.isArray(jobData.keywords) ? jobData.keywords : jobData.keywords.split(',').map((s: string) => s.trim()))
+                : jobData.skills || [];
+        }
+
+        // Clean null/undefined properties so we don't accidentally overwrite data with nulls
+        Object.keys(jobRecord).forEach(key => {
+            if (jobRecord[key] === null || jobRecord[key] === undefined) {
+                delete jobRecord[key];
+            }
+        });
+
         const result = await tablesDB.updateRow({
             databaseId: DB_ID,
             tableId: 'jobs',
             rowId: id,
-            data: jobData
+            data: jobRecord
         });
         return result;
     } catch (error) {

@@ -21,12 +21,24 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MoreHorizontal, ArrowUpDown, Search, Plus, Filter, Download, Trash2, Mail, Phone, FileText } from 'lucide-react'
+import {
+    MoreHorizontal,
+    Search,
+    Plus,
+    Filter,
+    Download,
+    Phone,
+    Mail,
+    FileText,
+    ChevronLeft,
+    ChevronRight,
+} from 'lucide-react'
 import { CreateCandidateDialog } from '@/features/candidates/components/create-candidate-dialog'
 import { getResumeUrl, deleteCandidate } from '@/lib/clientDbService'
 import { toast } from 'sonner'
+
+const PAGE_SIZE = 10
 
 export default function CandidatesPage() {
     const router = useRouter()
@@ -35,6 +47,7 @@ export default function CandidatesPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [openDialog, setOpenDialog] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
 
     useEffect(() => {
         const fetchCandidates = async () => {
@@ -44,7 +57,7 @@ export default function CandidatesPage() {
                 const data = await getCandidates()
                 setCandidates(data)
             } catch (error) {
-                console.error("Failed to fetch candidates:", error)
+                console.error('Failed to fetch candidates:', error)
             } finally {
                 setIsLoading(false)
             }
@@ -52,22 +65,41 @@ export default function CandidatesPage() {
         fetchCandidates()
     }, [])
 
+    // Reset to page 1 whenever the search query changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchQuery])
+
+    const filteredCandidates = candidates.filter((candidate) => {
+        const fullName =
+            candidate.name ||
+            `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim()
+        const email = candidate.email || ''
+        return (
+            fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            email.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    })
+
+    // Pagination
+    const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE))
+    const safePage = Math.min(currentPage, totalPages)
+    const startIndex = (safePage - 1) * PAGE_SIZE
+    const pagedCandidates = filteredCandidates.slice(startIndex, startIndex + PAGE_SIZE)
+
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedIds(new Set(candidates.map((c) => c.$id)))
+            setSelectedIds(new Set(pagedCandidates.map((c) => c.$id)))
         } else {
             setSelectedIds(new Set())
         }
     }
 
     const handleSelectRow = (id: string, checked: boolean) => {
-        const newSelected = new Set(selectedIds)
-        if (checked) {
-            newSelected.add(id)
-        } else {
-            newSelected.delete(id)
-        }
-        setSelectedIds(newSelected)
+        const next = new Set(selectedIds)
+        if (checked) next.add(id)
+        else next.delete(id)
+        setSelectedIds(next)
     }
 
     const handleViewResume = async (resumeFileId: string) => {
@@ -76,34 +108,30 @@ export default function CandidatesPage() {
             window.open(resumeUrl, '_blank')
         } catch (error) {
             console.error('Error viewing resume:', error)
-            toast.error("Failed to view resume")
+            toast.error('Failed to view resume')
         }
     }
 
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
+        if (!window.confirm(`Are you sure you want to delete ${name}?`)) return
         try {
-            await deleteCandidate(id);
-            toast.success("Candidate deleted successfully");
-            setCandidates(candidates.filter(c => c.$id !== id));
-            const newSelected = new Set(selectedIds);
-            newSelected.delete(id);
-            setSelectedIds(newSelected);
+            await deleteCandidate(id)
+            toast.success('Candidate deleted successfully')
+            setCandidates((prev) => prev.filter((c) => c.$id !== id))
+            setSelectedIds((prev) => {
+                const next = new Set(prev)
+                next.delete(id)
+                return next
+            })
         } catch (error) {
-            console.error("Failed to delete candidate:", error);
-            toast.error("Failed to delete candidate");
+            console.error('Failed to delete candidate:', error)
+            toast.error('Failed to delete candidate')
         }
     }
 
-    const filteredCandidates = candidates.filter((candidate) => {
-        const fullName = candidate.name || `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim();
-        const email = candidate.email || '';
-        return fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            email.toLowerCase().includes(searchQuery.toLowerCase());
-    });
-
     return (
         <div className="p-6 space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Candidates</h1>
@@ -121,6 +149,7 @@ export default function CandidatesPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
+                        {/* Toolbar */}
                         <div className="flex items-center justify-between gap-4">
                             <div className="relative flex-1 max-w-sm">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -155,14 +184,20 @@ export default function CandidatesPage() {
                             </div>
                         </div>
 
+                        {/* Table */}
                         <div className="rounded-md border">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-12.5">
+                                        <TableHead className="w-12">
                                             <Checkbox
-                                                checked={selectedIds.size === candidates.length && candidates.length > 0}
-                                                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                                                checked={
+                                                    pagedCandidates.length > 0 &&
+                                                    pagedCandidates.every((c) => selectedIds.has(c.$id))
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    handleSelectAll(checked as boolean)
+                                                }
                                             />
                                         </TableHead>
                                         <TableHead>Name</TableHead>
@@ -172,7 +207,7 @@ export default function CandidatesPage() {
                                         <TableHead>Current Role</TableHead>
                                         <TableHead>Call Log</TableHead>
                                         <TableHead>Response</TableHead>
-                                        <TableHead className="w-12.5"></TableHead>
+                                        <TableHead className="w-12" />
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -182,21 +217,27 @@ export default function CandidatesPage() {
                                                 Loading candidates...
                                             </TableCell>
                                         </TableRow>
-                                    ) : filteredCandidates.length === 0 ? (
+                                    ) : pagedCandidates.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={9} className="h-24 text-center">
                                                 No candidates found.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredCandidates.map((candidate) => {
-                                            const candidateId = candidate.$id;
+                                        pagedCandidates.map((candidate) => {
+                                            const candidateId = candidate.$id
                                             return (
-                                                <TableRow key={candidateId} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/candidates/${candidateId}`)}>
+                                                <TableRow
+                                                    key={candidateId}
+                                                    className="cursor-pointer hover:bg-muted/50"
+                                                    onClick={() => router.push(`/candidates/${candidateId}`)}
+                                                >
                                                     <TableCell onClick={(e) => e.stopPropagation()}>
                                                         <Checkbox
                                                             checked={selectedIds.has(candidateId)}
-                                                            onCheckedChange={(checked) => handleSelectRow(candidateId, checked as boolean)}
+                                                            onCheckedChange={(checked) =>
+                                                                handleSelectRow(candidateId, checked as boolean)
+                                                            }
                                                         />
                                                     </TableCell>
                                                     <TableCell className="font-medium">
@@ -204,20 +245,32 @@ export default function CandidatesPage() {
                                                     </TableCell>
                                                     <TableCell>{candidate.email}</TableCell>
                                                     <TableCell>{candidate.phone || '-'}</TableCell>
-                                                    <TableCell>{candidate.city ? `${candidate.city}, ${candidate.state || ''}` : '-'}</TableCell>
-                                                    <TableCell className="max-w-50 truncate" title={candidate.title || ''}>
-                                                        {candidate.title || (candidate.current_organization ? `${candidate.current_organization}` : '-')}
+                                                    <TableCell>
+                                                        {candidate.city
+                                                            ? `${candidate.city}, ${candidate.state || ''}`
+                                                            : '-'}
+                                                    </TableCell>
+                                                    <TableCell
+                                                        className="max-w-[200px] truncate"
+                                                        title={candidate.title || ''}
+                                                    >
+                                                        {candidate.title ||
+                                                            (candidate.current_organization
+                                                                ? candidate.current_organization
+                                                                : '-')}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {candidate.callLog && candidate.callLog.length > 0 ? (
-                                                            <span className="text-xs text-muted-foreground">{candidate.callLog[candidate.callLog.length - 1]}</span>
+                                                        {candidate.callLog?.length > 0 ? (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {candidate.callLog[candidate.callLog.length - 1]}
+                                                            </span>
                                                         ) : (
                                                             <span className="text-xs text-muted-foreground">-</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
                                                         {candidate.candidateResponse ? (
-                                                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground">
                                                                 {candidate.candidateResponse}
                                                             </span>
                                                         ) : (
@@ -235,12 +288,21 @@ export default function CandidatesPage() {
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                                 {candidate.resume_file_id && (
-                                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResume(candidate.resume_file_id) }}>
+                                                                    <DropdownMenuItem
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            handleViewResume(candidate.resume_file_id)
+                                                                        }}
+                                                                    >
                                                                         <FileText className="mr-2 h-4 w-4" />
                                                                         View Resume
                                                                     </DropdownMenuItem>
                                                                 )}
-                                                                <DropdownMenuItem onClick={() => router.push(`/candidates/${candidateId}`)}>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        router.push(`/candidates/${candidateId}`)
+                                                                    }
+                                                                >
                                                                     View Profile
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem>
@@ -248,17 +310,64 @@ export default function CandidatesPage() {
                                                                     Call Candidate
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(candidateId, `${candidate.firstName} ${candidate.lastName}`); }}>Delete Candidate</DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        handleDelete(
+                                                                            candidateId,
+                                                                            `${candidate.firstName} ${candidate.lastName}`
+                                                                        )
+                                                                    }}
+                                                                >
+                                                                    Delete Candidate
+                                                                </DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </TableCell>
                                                 </TableRow>
-                                            );
+                                            )
                                         })
                                     )}
                                 </TableBody>
                             </Table>
                         </div>
+
+                        {/* Pagination Controls */}
+                        {!isLoading && filteredCandidates.length > 0 && (
+                            <div className="flex items-center justify-between pt-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Showing {startIndex + 1}–
+                                    {Math.min(startIndex + PAGE_SIZE, filteredCandidates.length)} of{' '}
+                                    {filteredCandidates.length} candidates
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1"
+                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                        disabled={safePage <= 1}
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Previous
+                                    </Button>
+                                    <span className="text-sm font-medium px-2">
+                                        Page {safePage} of {totalPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1"
+                                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={safePage >= totalPages}
+                                    >
+                                        Next
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -267,7 +376,7 @@ export default function CandidatesPage() {
                 open={openDialog}
                 onOpenChange={setOpenDialog}
                 onCandidateCreate={(newCandidate) => {
-                    setCandidates([newCandidate, ...candidates])
+                    setCandidates((prev) => [newCandidate, ...prev])
                     setOpenDialog(false)
                 }}
             />

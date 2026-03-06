@@ -7,7 +7,14 @@ import { randomUUID } from 'crypto';
 export async function GET() {
   try {
     const jobs = await listJobs();
-    return NextResponse.json(jobs);
+
+    // Map company_name to company for frontend compatibility if company_name exists
+    const formattedJobs = jobs.map(job => ({
+      ...job,
+      company: job.company_name || job.company || 'Unknown',
+    }));
+
+    return NextResponse.json(formattedJobs);
   } catch (error: unknown) {
     console.error('Failed to list jobs:', error);
     return NextResponse.json(
@@ -33,6 +40,7 @@ export async function POST(request: NextRequest) {
       title: body.title,
       status: (body.status || 'open').toLowerCase().replace(/\s+/g, '_') || 'open',
       company_id: companyId,
+      company_name: body.company_name || body.company || null,
       contact_id: body.contact_id || body.contactId || null,
       description: body.jobDescription || body.description || null,
       city: body.city || null,

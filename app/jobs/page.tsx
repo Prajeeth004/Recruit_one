@@ -35,6 +35,7 @@ export default function JobsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [openDialog, setOpenDialog] = useState(false)
+    const [editingJob, setEditingJob] = useState<any>(null)
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -209,6 +210,9 @@ export default function JobsPage() {
                                                             <DropdownMenuItem onClick={() => router.push(`/jobs/${job.$id}`)}>
                                                                 View Details
                                                             </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingJob(job); }}>
+                                                                Edit Job
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(job.$id, job.title); }}>Delete Job</DropdownMenuItem>
                                                         </DropdownMenuContent>
@@ -225,12 +229,22 @@ export default function JobsPage() {
             </Card>
 
             <CreateJobDialog
-                open={openDialog}
-                onOpenChange={setOpenDialog}
-                onJobCreate={(newJob) => {
-                    setJobs([newJob, ...jobs])
-                    setOpenDialog(false)
+                open={openDialog || !!editingJob}
+                onOpenChange={(open) => {
+                    setOpenDialog(open)
+                    if (!open) setEditingJob(null)
                 }}
+                onJobCreate={(job) => {
+                    if (editingJob) {
+                        setJobs(jobs.map(j => j.$id === job.$id ? job : j))
+                    } else {
+                        setJobs([job, ...jobs])
+                    }
+                    setOpenDialog(false)
+                    setEditingJob(null)
+                }}
+                initialData={editingJob}
+                isEditMode={!!editingJob}
             />
         </div>
     )

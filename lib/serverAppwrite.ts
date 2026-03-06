@@ -65,12 +65,29 @@ export async function createJobRow(data: Record<string, unknown>) {
 
 export async function listCandidates() {
   assertServerConfig();
-  const result = await tablesDB.listRows({
-    databaseId: DB_ID,
-    tableId: 'candidates',
-    queries: [Query.orderDesc('$createdAt')],
-  });
-  return result.rows;
+
+  // Appwrite's default page size is 25. We paginate to collect ALL candidates.
+  const pageSize = 100;
+  let offset = 0;
+  const allRows: any[] = [];
+
+  while (true) {
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'candidates',
+      queries: [Query.orderDesc('$createdAt'), Query.limit(pageSize), Query.offset(offset)],
+    });
+
+    const rows = result.rows ?? [];
+    allRows.push(...rows);
+
+    // If we got fewer rows than the page size, we've reached the last page
+    if (rows.length < pageSize) break;
+
+    offset += pageSize;
+  }
+
+  return allRows;
 }
 
 export async function getJobRow(jobId: string) {

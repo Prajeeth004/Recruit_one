@@ -57,17 +57,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
     }
 
-    // Map frontend fields → real Appwrite column names
+    // Map frontend fields → real Appwrite column names.
+    // Convert empty strings to null to avoid Appwrite type validation errors (e.g. on URL columns)
     const data: Record<string, unknown> = {
       name: body.name,
-      industry: body.industry ?? null,
-      // Accept either a combined fullAddress or separate fields
-      address: body.address ?? body.fullAddress ?? null,
-      city: body.city ?? null,
-      state: body.state ?? null,
-      country: body.country ?? null,
-      website: body.website ?? null,
-      owner_id: body.owner_id ?? body.owner ?? null,
+      industry: body.industry || null,
+      address: body.address || body.fullAddress || null,
+      city: body.city || null,
+      state: body.state || null,
+      country: body.country || null,
+      website: body.website || null,
+      owner_id: body.owner_id || body.owner || null,
       hotlist: body.hotlist ?? false,
     };
 
@@ -94,7 +94,11 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Failed to create company:', error);
     return NextResponse.json(
-      { error: 'Failed to create company', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to create company', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        fullError: String(error)
+      },
       { status: 500 }
     );
   }

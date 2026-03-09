@@ -54,8 +54,8 @@ export function CreateCompanyDialog({
             })
 
             if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.error || 'Failed to create company')
+                const errData = await res.json().catch(() => ({}))
+                throw new Error(errData.fullError || errData.details || errData.error || 'Failed to create company')
             }
 
             const savedCompany = await res.json()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { useRouter } from 'next/navigation'
 import {
@@ -24,17 +24,58 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MoreHorizontal, ArrowUpDown, Search, Plus, Filter, Download, Trash2, Globe } from 'lucide-react'
-import { COMPANIES, Company } from '@/lib/mock-data'
+import { MoreHorizontal, Search, Plus, Filter, Download, Trash2, Globe, Loader2 } from 'lucide-react'
+import { Company } from '@/lib/mock-data'
 import { CreateCompanyDialog } from '@/features/companies/components/create-company-dialog'
 
 export default function CompaniesPage() {
     const router = useRouter()
-    const [companies, setCompanies] = useState<Company[]>(COMPANIES)
+    const [companies, setCompanies] = useState<Company[]>([])
+    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [openDialog, setOpenDialog] = useState(false)
 
+    // ── Fetch companies from the API on mount ──────────────────────────────
+    useEffect(() => {
+        fetchCompanies()
+    }, [])
+
+    async function fetchCompanies() {
+        setLoading(true)
+        try {
+            const res = await fetch('/api/companies')
+            if (!res.ok) throw new Error('Failed to load companies')
+            const data: Company[] = await res.json()
+            setCompanies(data)
+        } catch (err) {
+            console.error(err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // ── Delete a company ───────────────────────────────────────────────────
+    async function handleDelete(id: string) {
+        // Optimistic update
+        setCompanies((prev) => prev.filter((c) => c.id !== id))
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            next.delete(id)
+            return next
+        })
+        try {
+            const res = await fetch(`/api/companies/${id}`, { method: 'DELETE' })
+            if (!res.ok) {
+                // Rollback on failure
+                fetchCompanies()
+            }
+        } catch {
+            fetchCompanies()
+        }
+    }
+
+    // ── Selection helpers ──────────────────────────────────────────────────
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
             setSelectedIds(new Set(companies.map((c) => c.id)))
@@ -53,6 +94,7 @@ export default function CompaniesPage() {
         setSelectedIds(newSelected)
     }
 
+    // ── Filter ─────────────────────────────────────────────────────────────
     const filteredCompanies = companies.filter((company) =>
         company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.industry.toLowerCase().includes(searchQuery.toLowerCase())
@@ -132,7 +174,16 @@ export default function CompaniesPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredCompanies.length === 0 ? (
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="h-24 text-center">
+                                                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Loading companies…
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : filteredCompanies.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={7} className="h-24 text-center">
                                                 No companies found.
@@ -140,11 +191,17 @@ export default function CompaniesPage() {
                                         </TableRow>
                                     ) : (
                                         filteredCompanies.map((company) => (
-                                            <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/companies/${company.id}`)}>
+                                            <TableRow
+                                                key={company.id}
+                                                className="cursor-pointer hover:bg-muted/50"
+                                                onClick={() => router.push(`/companies/${company.id}`)}
+                                            >
                                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                                     <Checkbox
                                                         checked={selectedIds.has(company.id)}
-                                                        onCheckedChange={(checked) => handleSelectRow(company.id, checked as boolean)}
+                                                        onCheckedChange={(checked) =>
+                                                            handleSelectRow(company.id, checked as boolean)
+                                                        }
                                                     />
                                                 </TableCell>
                                                 <TableCell className="font-medium">{company.name}</TableCell>
@@ -156,10 +213,20 @@ export default function CompaniesPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                                        <Globe className="h-3 w-3" />
-                                                        Visit
-                                                    </a>
+                                                    {company.website ? (
+                                                        <a
+                                                            href={company.website}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:underline flex items-center gap-1"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <Globe className="h-3 w-3" />
+                                                            Visit
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-sm">—</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                                     <DropdownMenu>
@@ -171,11 +238,19 @@ export default function CompaniesPage() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => router.push(`/companies/${company.id}`)}>
+                                                            <DropdownMenuItem
+                                                                onClick={() => router.push(`/companies/${company.id}`)}
+                                                            >
                                                                 View Details
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-destructive">Delete Company</DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                className="text-destructive"
+                                                                onClick={() => handleDelete(company.id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                                Delete Company
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
@@ -193,7 +268,7 @@ export default function CompaniesPage() {
                 open={openDialog}
                 onOpenChange={setOpenDialog}
                 onCompanyCreate={(newCompany) => {
-                    setCompanies([...companies, newCompany])
+                    setCompanies((prev) => [newCompany, ...prev])
                     setOpenDialog(false)
                 }}
             />

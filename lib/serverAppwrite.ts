@@ -167,6 +167,91 @@ export async function getCallLogRowByVapiId(vapiCallId: string) {
   }
 }
 
+// ==========================================
+// Companies (server-side, admin access)
+// ==========================================
+
+export async function listCompanies() {
+  assertServerConfig();
+  const pageSize = 100;
+  let offset = 0;
+  const allRows: any[] = [];
+
+  while (true) {
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'companies',
+      queries: [Query.orderDesc('$createdAt'), Query.limit(pageSize), Query.offset(offset)],
+    });
+    const rows = result.rows ?? [];
+    allRows.push(...rows);
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+  return allRows;
+}
+
+export async function createCompanyRow(data: Record<string, unknown>) {
+  assertServerConfig();
+  const rowId = ID.unique();
+  await tablesDB.createRow({
+    databaseId: DB_ID,
+    tableId: 'companies',
+    rowId,
+    data,
+    permissions: [Permission.read(Role.any()), Permission.write(Role.any())],
+  });
+  return await tablesDB.getRow({ databaseId: DB_ID, tableId: 'companies', rowId });
+}
+
+export async function getCompanyRow(rowId: string) {
+  assertServerConfig();
+  return await tablesDB.getRow({ databaseId: DB_ID, tableId: 'companies', rowId });
+}
+
+export async function getOrCreateCompanyByName(companyName: string): Promise<string> {
+  assertServerConfig();
+  const nameToSearch = companyName.trim();
+  if (!nameToSearch) return await getOrCreateDefaultCompanyId();
+  
+  try {
+    const result = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'companies',
+      queries: [Query.equal('name', nameToSearch), Query.limit(1)],
+    });
+    if (result.rows && result.rows.length > 0) {
+      return result.rows[0].$id;
+    }
+  } catch (error) {
+    console.error('Error searching for company by name:', error);
+  }
+  
+  // Create it
+  const newRow = await createCompanyRow({ name: nameToSearch });
+  return newRow.$id;
+}
+
+export async function listJobsByCompany(companyId: string) {
+  assertServerConfig();
+  const result = await tablesDB.listRows({
+    databaseId: DB_ID,
+    tableId: 'jobs',
+    queries: [Query.equal('company_id', companyId), Query.orderDesc('$createdAt')],
+  });
+  return result.rows ?? [];
+}
+
+export async function updateCompanyRow(rowId: string, data: Record<string, unknown>) {
+  assertServerConfig();
+  return await tablesDB.updateRow({ databaseId: DB_ID, tableId: 'companies', rowId, data });
+}
+
+export async function deleteCompanyRow(rowId: string) {
+  assertServerConfig();
+  await tablesDB.deleteRow({ databaseId: DB_ID, tableId: 'companies', rowId });
+}
+
 export async function listCallLogsByCandidate(candidateId: string) {
   assertServerConfig();
   try {

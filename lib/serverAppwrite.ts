@@ -185,3 +185,83 @@ export async function listCallLogsByCandidate(candidateId: string) {
     return (result.rows ?? []).filter((r: any) => r.candidate_id === candidateId);
   }
 }
+
+// ==========================================
+// Dashboard Stats and Activity
+// ==========================================
+
+export async function getDashboardStats() {
+  assertServerConfig();
+  const candidatesResult = await listCandidates();
+  const jobsResult = await listJobs();
+
+  let totalCompanies = 0;
+  try {
+    const companiesResult = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'companies',
+      queries: [Query.limit(1000)]
+    });
+    totalCompanies = companiesResult.rows?.length || 0;
+  } catch (e) { }
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+
+  const candidatesThisMonth = candidatesResult.filter((c: any) => new Date(c.$createdAt) >= startOfMonth).length;
+  const jobsThisWeek = jobsResult.filter((j: any) => new Date(j.$createdAt) >= startOfWeek).length;
+
+  return {
+    totalCandidates: candidatesResult.length,
+    newCandidatesThisMonth: candidatesThisMonth,
+    activeJobs: jobsResult.length,
+    newJobsThisWeek: jobsThisWeek,
+    totalCompanies,
+  };
+}
+
+export async function getRecentActivity(limit = 6) {
+  assertServerConfig();
+  let candidates: any[] = [];
+  let jobs: any[] = [];
+
+  try {
+    const cRes = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'candidates',
+      queries: [Query.orderDesc('$createdAt'), Query.limit(limit)]
+    });
+    candidates = cRes.rows || [];
+  } catch (e) { }
+
+  try {
+    const jRes = await tablesDB.listRows({
+      databaseId: DB_ID,
+      tableId: 'jobs',
+      queries: [Query.orderDesc('$createdAt'), Query.limit(limit)]
+    });
+    jobs = jRes.rows || [];
+  } catch (e) { }
+
+  const activities = [
+    ...candidates.map((c: any) => ({
+      id: `candidate-${c.$id}`,
+      type: 'candidate',
+      title: 'New candidate added',
+      description: `${c.firstName || ''} ${c.lastName || ''} added`,
+      date: new Date(c.$createdAt)
+    })),
+    ...jobs.map((j: any) => ({
+      id: `job-${j.$id}`,
+      type: 'job',
+      title: 'Job posted',
+      description: `${j.title || 'New Job'} posted`,
+      date: new Date(j.$createdAt)
+    }))
+  ];
+
+  activities.sort((a, b) => b.date.getTime() - a.date.getTime());
+  return activities.slice(0, limit);
+}

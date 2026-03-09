@@ -36,11 +36,25 @@ export function CreateJobDialog({
   const [isGenerating, setIsGenerating] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [companies, setCompanies] = useState<any[]>([])
+  const [fetchingCompanies, setFetchingCompanies] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setFetchingCompanies(true)
+      fetch('/api/companies')
+        .then(res => res.json())
+        .then(data => setCompanies(Array.isArray(data) ? data : []))
+        .catch(err => console.error('Failed to fetch companies', err))
+        .finally(() => setFetchingCompanies(false))
+    }
+  }, [open])
 
   const [formData, setFormData] = useState({
     title: '',
     status: 'Open',
     company: '',
+    company_id: '',
     noteForCandidates: '',
     fullAddress: '',
     city: '',
@@ -76,6 +90,7 @@ export function CreateJobDialog({
         title: initialData.title || '',
         status: initialData.status || 'Open',
         company: initialData.company || initialData.company_name || '',
+        company_id: initialData.company_id || '',
         noteForCandidates: '',
         fullAddress: initialData.address || '',
         city: initialData.city || '',
@@ -169,6 +184,7 @@ export function CreateJobDialog({
       title: '',
       status: 'Open',
       company: '',
+      company_id: '',
       noteForCandidates: '',
       fullAddress: '',
       city: '',

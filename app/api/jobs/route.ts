@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listJobs, createJobRow, getOrCreateDefaultCompanyId } from '@/lib/serverAppwrite';
+import { listJobs, listJobsByCompany, createJobRow, getOrCreateDefaultCompanyId, getOrCreateCompanyByName } from '@/lib/serverAppwrite';
 import { GoogleGenAI } from '@google/genai';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { randomUUID } from 'crypto';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const jobs = await listJobs();
+    const companyId = request.nextUrl.searchParams.get('company_id');
+    const jobs = companyId ? await listJobsByCompany(companyId) : await listJobs();
 
-    // Map company_name to company for frontend compatibility if company_name exists
-    const formattedJobs = jobs.map(job => ({
+    const formattedJobs = jobs.map((job: any) => ({
       ...job,
+      id: job.$id,
       company: job.company_name || job.company || 'Unknown',
     }));
 
@@ -28,7 +29,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const companyId = body.company_id || body.companyId || (await getOrCreateDefaultCompanyId());
+    let companyId = body.company_id || body.companyId;
+    if (!companyId && (body.company_name || body.company)) {
+      companyId = await getOrCreateCompanyByName(body.company_name || body.company);
+    } else if (!companyId) {
+      companyId = await getOrCreateDefaultCompanyId();
+    }
 
     const rawLocation = (body.jobLocationType || body.location_type || '')
       .toLowerCase()

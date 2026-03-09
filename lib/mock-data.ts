@@ -72,14 +72,22 @@ export interface Company {
     id: string
     name: string
     industry: string
+    /** Concatenated display string: address + city + state + country */
     fullAddress: string
+    /** Raw columns from Appwrite (matching setup/appwrite.js schema) */
+    address?: string
+    city?: string
+    state?: string
+    country?: string
     website: string
+    /** Maps to owner_id column in Appwrite */
+    owner: string
+    hotlist: boolean
+    /** Derived from the jobs table — not stored on the company row */
     openJobs: number
     closedJobs: number
     onHoldJobs: number
     cancelledJobs: number
-    owner: string
-    hotlist: boolean
 }
 
 export const CANDIDATES: Candidate[] = [

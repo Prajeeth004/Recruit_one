@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import { useRouter } from 'next/navigation'
 import {
     Table,
@@ -93,6 +94,21 @@ export default function JobsPage() {
         (job.company || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
 
+    const handleExport = () => {
+        const dataToExport = filteredJobs.map(j => ({
+            Title: j.title || '',
+            Company: j.company || j.company_name || '',
+            Status: j.status || '',
+            Keywords: Array.isArray(j.skills) ? j.skills.join(', ') : j.skills || '',
+            Location: j.city ? `${j.city}, ${j.state || ''}` : '',
+            'Posted Date': new Date(j.$createdAt).toLocaleDateString()
+        }))
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Jobs")
+        XLSX.writeFile(workbook, "jobs_export.xlsx")
+    }
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Open': return 'bg-green-100 text-green-700'
@@ -137,7 +153,7 @@ export default function JobsPage() {
                                     <Filter className="h-4 w-4" />
                                     Filter
                                 </Button>
-                                <Button variant="outline" size="sm" className="gap-2">
+                                <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>

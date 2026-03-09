@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import { useRouter } from 'next/navigation'
 import {
     Table,
@@ -86,6 +87,22 @@ export default function CandidatesPage() {
     const safePage = Math.min(currentPage, totalPages)
     const startIndex = (safePage - 1) * PAGE_SIZE
     const pagedCandidates = filteredCandidates.slice(startIndex, startIndex + PAGE_SIZE)
+
+    const handleExport = () => {
+        const dataToExport = filteredCandidates.map(c => ({
+            Name: `${c.firstName || ''} ${c.lastName || ''}`.trim(),
+            Email: c.email || '',
+            Phone: c.phone || '',
+            Location: c.city ? `${c.city}, ${c.state || ''}` : '',
+            'Current Role': c.title || c.current_organization || '',
+            'Call Log': c.callLog?.length > 0 ? c.callLog[c.callLog.length - 1] : '',
+            Response: c.candidateResponse || ''
+        }))
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Candidates")
+        XLSX.writeFile(workbook, "candidates_export.xlsx")
+    }
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -177,7 +194,7 @@ export default function CandidatesPage() {
                                     <Filter className="h-4 w-4" />
                                     Filter
                                 </Button>
-                                <Button variant="outline" size="sm" className="gap-2">
+                                <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>

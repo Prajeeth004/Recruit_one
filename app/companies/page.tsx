@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import * as XLSX from 'xlsx'
 import { useRouter } from 'next/navigation'
 import {
     Table,
@@ -57,6 +58,20 @@ export default function CompaniesPage() {
         company.industry.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
+    const handleExport = () => {
+        const dataToExport = filteredCompanies.map(c => ({
+            Name: c.name,
+            Industry: c.industry,
+            Location: c.fullAddress,
+            'Open Jobs': c.openJobs,
+            Website: c.website
+        }))
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Companies")
+        XLSX.writeFile(workbook, "companies_export.xlsx")
+    }
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -91,7 +106,7 @@ export default function CompaniesPage() {
                                     <Filter className="h-4 w-4" />
                                     Filter
                                 </Button>
-                                <Button variant="outline" size="sm" className="gap-2">
+                                <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>

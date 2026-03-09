@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Loader2 } from 'lucide-react'
 
 interface CreateCompanyDialogProps {
     open: boolean
@@ -19,43 +20,52 @@ interface CreateCompanyDialogProps {
     onCompanyCreate: (company: any) => void
 }
 
+const emptyForm = {
+    name: '',
+    industry: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    website: '',
+    owner_id: '',
+    hotlist: false,
+}
+
 export function CreateCompanyDialog({
     open,
     onOpenChange,
     onCompanyCreate,
 }: CreateCompanyDialogProps) {
-    const [formData, setFormData] = useState({
-        name: '',
-        industry: '',
-        fullAddress: '',
-        website: '',
-        openJobs: 0,
-        closedJobs: 0,
-        onHoldJobs: 0,
-        cancelledJobs: 0,
-        owner: '',
-        hotlist: false,
-    })
+    const [formData, setFormData] = useState(emptyForm)
+    const [submitting, setSubmitting] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const newCompany = {
-            id: Math.random().toString(36).substr(2, 9),
-            ...formData,
+        setSubmitting(true)
+        setError(null)
+
+        try {
+            const res = await fetch('/api/companies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            })
+
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || 'Failed to create company')
+            }
+
+            const savedCompany = await res.json()
+            onCompanyCreate(savedCompany)
+            setFormData(emptyForm)
+        } catch (err: any) {
+            setError(err.message ?? 'Something went wrong')
+        } finally {
+            setSubmitting(false)
         }
-        onCompanyCreate(newCompany)
-        setFormData({
-            name: '',
-            industry: '',
-            fullAddress: '',
-            website: '',
-            openJobs: 0,
-            closedJobs: 0,
-            onHoldJobs: 0,
-            cancelledJobs: 0,
-            owner: '',
-            hotlist: false,
-        })
     }
 
     return (
@@ -65,9 +75,10 @@ export function CreateCompanyDialog({
                     <DialogTitle>Add Company</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                    {/* Row 1: Name + Industry */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Name</Label>
+                            <Label htmlFor="name">Company Name *</Label>
                             <Input
                                 id="name"
                                 value={formData.name}
@@ -81,89 +92,99 @@ export function CreateCompanyDialog({
                                 id="industry"
                                 value={formData.industry}
                                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                                required
                             />
                         </div>
                     </div>
 
+                    {/* Street address */}
                     <div className="space-y-2">
-                        <Label htmlFor="fullAddress">Full Address</Label>
+                        <Label htmlFor="address">Street Address</Label>
                         <Input
-                            id="fullAddress"
-                            value={formData.fullAddress}
-                            onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })}
+                            id="address"
+                            value={formData.address}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         />
                     </div>
 
+                    {/* City / State / Country */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="city">City</Label>
+                            <Input
+                                id="city"
+                                value={formData.city}
+                                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="state">State</Label>
+                            <Input
+                                id="state"
+                                value={formData.state}
+                                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="country">Country</Label>
+                            <Input
+                                id="country"
+                                value={formData.country}
+                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Website + Owner */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="website">Website</Label>
                             <Input
                                 id="website"
+                                placeholder="https://example.com"
                                 value={formData.website}
                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="owner">Owner</Label>
+                            <Label htmlFor="owner_id">Owner ID</Label>
                             <Input
-                                id="owner"
-                                value={formData.owner}
-                                onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+                                id="owner_id"
+                                placeholder="User ID"
+                                value={formData.owner_id}
+                                onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="openJobs">Open Jobs</Label>
-                            <Input
-                                id="openJobs"
-                                type="number"
-                                value={formData.openJobs}
-                                onChange={(e) => setFormData({ ...formData, openJobs: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="closedJobs">Closed Jobs</Label>
-                            <Input
-                                id="closedJobs"
-                                type="number"
-                                value={formData.closedJobs}
-                                onChange={(e) => setFormData({ ...formData, closedJobs: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="onHoldJobs">On Hold Jobs</Label>
-                            <Input
-                                id="onHoldJobs"
-                                type="number"
-                                value={formData.onHoldJobs}
-                                onChange={(e) => setFormData({ ...formData, onHoldJobs: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cancelledJobs">Cancelled Jobs</Label>
-                            <Input
-                                id="cancelledJobs"
-                                type="number"
-                                value={formData.cancelledJobs}
-                                onChange={(e) => setFormData({ ...formData, cancelledJobs: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                    </div>
-
+                    {/* Hotlist */}
                     <div className="flex items-center space-x-2">
                         <Checkbox
                             id="hotlist"
                             checked={formData.hotlist}
-                            onCheckedChange={(checked) => setFormData({ ...formData, hotlist: checked as boolean })}
+                            onCheckedChange={(checked) =>
+                                setFormData({ ...formData, hotlist: checked as boolean })
+                            }
                         />
                         <Label htmlFor="hotlist">Hotlist</Label>
                     </div>
 
+                    {error && (
+                        <p className="text-sm text-destructive">{error}</p>
+                    )}
+
                     <DialogFooter>
-                        <Button type="submit">Add Company</Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                            disabled={submitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={submitting} className="gap-2">
+                            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {submitting ? 'Saving…' : 'Add Company'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

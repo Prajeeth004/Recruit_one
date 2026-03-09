@@ -24,10 +24,26 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MoreHorizontal, ArrowUpDown, Search, Plus, Filter, Download, Trash2 } from 'lucide-react'
+import { MoreHorizontal, ArrowUpDown, Search, Plus, Filter, Download, Trash2, X } from 'lucide-react'
 import { CreateJobDialog } from '@/features/jobs/components/create-job-dialog'
 import { deleteJob } from '@/lib/clientDbService'
 import { toast } from 'sonner'
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetFooter,
+} from '@/components/ui/sheet'
+import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 
 export default function JobsPage() {
     const router = useRouter()
@@ -37,6 +53,13 @@ export default function JobsPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [openDialog, setOpenDialog] = useState(false)
     const [editingJob, setEditingJob] = useState<any>(null)
+    const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
+
+    // Filter states
+    const [filterStatus, setFilterStatus] = useState<string>('all')
+    const [filterCompany, setFilterCompany] = useState<string>('all')
+    const [filterLocation, setFilterLocation] = useState<string>('all')
+    const [filterTitle, setFilterTitle] = useState<string>('')
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -89,10 +112,39 @@ export default function JobsPage() {
         setSelectedIds(newSelected)
     }
 
-    const filteredJobs = jobs.filter((job) =>
-        (job.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (job.company || '').toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredJobs = jobs.filter((job) => {
+        const keywordsStr = Array.isArray(job.keywords) ? job.keywords.join(', ') : (job.keywords || '')
+        const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            keywordsStr.toLowerCase().includes(searchQuery.toLowerCase())
+        
+        const matchesStatus = filterStatus === 'all' || job.status?.toLowerCase() === filterStatus.toLowerCase()
+        const matchesCompany = filterCompany === 'all' || (job.company || job.company_name)?.toLowerCase() === filterCompany.toLowerCase()
+        
+        const currentLoc = job.city ? `${job.city}, ${job.state || ''}` : ''
+        const normalizedLoc = currentLoc.split(',').map(s => s.trim()).filter(Boolean).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join(', ')
+        const matchesLocation = filterLocation === 'all' || normalizedLoc === filterLocation
+        
+        const matchesTitle = !filterTitle || job.title.toLowerCase().includes(filterTitle.toLowerCase())
+
+        return matchesSearch && matchesStatus && matchesCompany && matchesLocation && matchesTitle
+    })
+
+    // Get unique values for filters
+    const locations_options: string[] = Array.from(new Set(jobs.map(j => {
+        const loc = j.city ? `${j.city}, ${j.state || ''}` : null
+        return loc ? loc.split(',').map(s => s.trim()).filter(Boolean).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join(', ') : null
+    }).filter(Boolean) as string[]))
+    const statuses_options: string[] = Array.from(new Set(jobs.map(j => j.status?.trim()).filter(Boolean).map(s => s!.charAt(0).toUpperCase() + s!.slice(1).toLowerCase()) as string[]))
+    const companies_options: string[] = Array.from(new Set(jobs.map(j => (j.company || j.company_name)?.trim()).filter(Boolean) as string[]))
+
+    const resetFilters = () => {
+        setFilterStatus('all')
+        setFilterCompany('all')
+        setFilterLocation('all')
+        setFilterTitle('')
+        setSearchQuery('')
+    }
 
     const handleExport = () => {
         const dataToExport = filteredJobs.map(j => ({
@@ -149,10 +201,86 @@ export default function JobsPage() {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" className="gap-2">
-                                    <Filter className="h-4 w-4" />
-                                    Filter
-                                </Button>
+                                <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                                    <SheetTrigger asChild>
+                                        <Button variant="outline" size="sm" className="gap-2">
+                                            <Filter className="h-4 w-4" />
+                                            Filter
+                                            {(filterStatus !== 'all' || filterCompany !== 'all' || filterLocation !== 'all' || filterTitle) && (
+                                                <Badge variant="secondary" className="ml-1 px-1 h-4 min-w-4 justify-center">
+                                                    !
+                                                </Badge>
+                                            )}
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent className="w-[400px] sm:w-[540px]">
+                                        <SheetHeader>
+                                            <SheetTitle>Filter Jobs</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="grid gap-6 py-6 px-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="filter-title" className="text-sm font-medium">Job Title</Label>
+                                                <Input
+                                                    id="filter-title"
+                                                    placeholder="Search by title..."
+                                                    value={filterTitle}
+                                                    onChange={(e) => setFilterTitle(e.target.value)}
+                                                    className="h-9"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="text-sm font-medium">Status</Label>
+                                                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Select Status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Statuses</SelectItem>
+                                                        {statuses_options.map(status => (
+                                                            <SelectItem key={status} value={status}>{status}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="text-sm font-medium">Company</Label>
+                                                <Select value={filterCompany} onValueChange={setFilterCompany}>
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Select Company" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Companies</SelectItem>
+                                                        {companies_options.map(company => (
+                                                            <SelectItem key={company} value={company}>{company}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="text-sm font-medium">Location</Label>
+                                                <Select value={filterLocation} onValueChange={setFilterLocation}>
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Select Location" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Locations</SelectItem>
+                                                        {locations_options.map(loc => (
+                                                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <SheetFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                            <Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto">
+                                                Reset Filters
+                                            </Button>
+                                            <Button onClick={() => setIsFilterSheetOpen(false)} className="w-full sm:w-auto">
+                                                Apply Filters
+                                            </Button>
+                                        </SheetFooter>
+                                    </SheetContent>
+                                </Sheet>
                                 <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
                                     <Download className="h-4 w-4" />
                                     Export

@@ -38,6 +38,23 @@ import {
 import { CreateCandidateDialog } from '@/features/candidates/components/create-candidate-dialog'
 import { getResumeUrl, deleteCandidate } from '@/lib/clientDbService'
 import { toast } from 'sonner'
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetFooter,
+} from '@/components/ui/sheet'
+import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 10
 
@@ -49,6 +66,12 @@ export default function CandidatesPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [openDialog, setOpenDialog] = useState(false)
     const [currentPage, setCurrentPage] = useState(1)
+    const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
+
+    // Filter states
+    const [filterLocation, setFilterLocation] = useState<string>('all')
+    const [filterRole, setFilterRole] = useState<string>('all')
+    const [filterResponse, setFilterResponse] = useState<string>('all')
 
     useEffect(() => {
         const fetchCandidates = async () => {
@@ -72,15 +95,36 @@ export default function CandidatesPage() {
     }, [searchQuery])
 
     const filteredCandidates = candidates.filter((candidate) => {
-        const fullName =
-            candidate.name ||
-            `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim()
-        const email = candidate.email || ''
-        return (
-            fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            email.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        const searchStr = searchQuery.toLowerCase()
+        const skillsStr = Array.isArray(candidate.skills) ? candidate.skills.join(', ') : (candidate.skills || '')
+        const matchesSearch = (candidate.name || '').toLowerCase().includes(searchStr) ||
+            (candidate.email || '').toLowerCase().includes(searchStr) ||
+            skillsStr.toLowerCase().includes(searchStr)
+        
+        const currentLoc = candidate.city ? `${candidate.city}, ${candidate.state || ''}` : ''
+        const normalizedLoc = currentLoc.split(',').map(s => s.trim()).filter(Boolean).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join(', ')
+        const matchesLocation = filterLocation === 'all' || normalizedLoc === filterLocation
+        
+        const matchesRole = filterRole === 'all' || (candidate.title || candidate.current_organization) === filterRole
+        const matchesResponse = filterResponse === 'all' || candidate.candidateResponse?.toLowerCase() === filterResponse.toLowerCase()
+
+        return matchesSearch && matchesLocation && matchesRole && matchesResponse
     })
+
+    // Get unique values for filters
+    const locations_options: string[] = Array.from(new Set(candidates.map(c => {
+        const loc = c.city ? `${c.city}, ${c.state || ''}` : null
+        return loc ? loc.split(',').map(s => s.trim()).filter(Boolean).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join(', ') : null
+    }).filter(Boolean) as string[]))
+    const roles_options: string[] = Array.from(new Set(candidates.map(c => (c.title || c.current_organization)?.trim()).filter(Boolean) as string[]))
+    const response_options: string[] = Array.from(new Set(candidates.map(c => c.candidateResponse?.trim()).filter(Boolean).map(s => s!.charAt(0).toUpperCase() + s!.slice(1).toLowerCase()) as string[]))
+
+    const resetFilters = () => {
+        setFilterLocation('all')
+        setFilterRole('all')
+        setFilterResponse('all')
+        setSearchQuery('')
+    }
 
     // Pagination
     const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / PAGE_SIZE))
@@ -190,10 +234,76 @@ export default function CandidatesPage() {
                                         </Button>
                                     </>
                                 )}
-                                <Button variant="outline" size="sm" className="gap-2">
-                                    <Filter className="h-4 w-4" />
-                                    Filter
-                                </Button>
+                                <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                                    <SheetTrigger asChild>
+                                        <Button variant="outline" size="sm" className="gap-2">
+                                            <Filter className="h-4 w-4" />
+                                            Filter
+                                            {(filterLocation !== 'all' || filterRole !== 'all' || filterResponse !== 'all') && (
+                                                <Badge variant="secondary" className="ml-1 px-1 h-4 min-w-4 justify-center">
+                                                    !
+                                                </Badge>
+                                            )}
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent className="w-[400px] sm:w-[540px]">
+                                        <SheetHeader>
+                                            <SheetTitle>Filter Candidates</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="grid gap-6 py-6 px-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+                                            <div className="grid gap-2">
+                                                <Label className="text-sm font-medium">Location</Label>
+                                                <Select value={filterLocation} onValueChange={setFilterLocation}>
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Select Location" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Locations</SelectItem>
+                                                        {locations_options.map(loc => (
+                                                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="text-sm font-medium">Current Role</Label>
+                                                <Select value={filterRole} onValueChange={setFilterRole}>
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Select Role" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Roles</SelectItem>
+                                                        {roles_options.map(role => (
+                                                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="text-sm font-medium">Candidate Response</Label>
+                                                <Select value={filterResponse} onValueChange={setFilterResponse}>
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Select Response" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Responses</SelectItem>
+                                                        {response_options.map(resp => (
+                                                            <SelectItem key={resp} value={resp}>{resp}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <SheetFooter className="flex-col sm:flex-row gap-2 pt-4">
+                                            <Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto">
+                                                Reset Filters
+                                            </Button>
+                                            <Button onClick={() => setIsFilterSheetOpen(false)} className="w-full sm:w-auto">
+                                                Apply Filters
+                                            </Button>
+                                        </SheetFooter>
+                                    </SheetContent>
+                                </Sheet>
                                 <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
                                     <Download className="h-4 w-4" />
                                     Export
